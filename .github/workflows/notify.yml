@@ -1,0 +1,48 @@
+name: Tägliche ntfy-Benachrichtigung
+
+on:
+  schedule:
+    # GitHub-Cron läuft in UTC. Je Slot zwei Einträge, damit Sommer- und
+    # Winterzeit abgedeckt sind – das Script prüft die Berlin-Stunde und
+    # sendet nur beim passenden Lauf (7 Uhr morgens, 19 Uhr abends).
+    - cron: "0 5 * * *"   # 07:00 Berlin (Sommerzeit)
+    - cron: "0 6 * * *"   # 07:00 Berlin (Winterzeit)
+    - cron: "0 17 * * *"  # 19:00 Berlin (Sommerzeit)
+    - cron: "0 18 * * *"  # 19:00 Berlin (Winterzeit)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Welche Nachricht senden?"
+        required: true
+        default: "morgen"
+        type: choice
+        options: [morgen, abend]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Modus bestimmen (morgens vs. abends)
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
+            echo "force=--force" >> "$GITHUB_OUTPUT"
+          else
+            HOUR_UTC=$(date -u +%H)
+            if [ "$HOUR_UTC" -lt 12 ]; then
+              echo "mode=morgen" >> "$GITHUB_OUTPUT"
+            else
+              echo "mode=abend" >> "$GITHUB_OUTPUT"
+            fi
+            echo "force=" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Nachricht senden
+        env:
+          NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: node scripts/notify.mjs ${{ steps.mode.outputs.mode }} ${{ steps.mode.outputs.force }}
