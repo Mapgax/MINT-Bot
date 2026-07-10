@@ -1,0 +1,15 @@
+{
+  "name": "mint-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Täglicher Science Fact mit Experiment für Kids – Web-App, ntfy-Push und LLM-Erklär-Helfer",
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "schedule": "node scripts/build-schedule.mjs",
+    "notify": "node scripts/notify.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0"
+  }
+}
