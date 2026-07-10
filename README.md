@@ -2,7 +2,7 @@
 
 Jeden Tag ein Science Fact mit einem Experiment, das man sofort zuhause machen kann – gebaut für ein neugieriges Kind (geb. 2020) mit Fokus auf klare Struktur, Vorhersehbarkeit und sichtbaren Fortschritt.
 
-**Web-App:** https://mint-bot.vercel.app *(URL ggf. anpassen)*
+**Web-App:** https://mint-bot-nine.vercel.app
 
 ## Was es kann
 

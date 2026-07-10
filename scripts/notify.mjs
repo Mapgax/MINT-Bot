@@ -15,7 +15,7 @@ const dryRun = args.includes("--dry-run");
 const force = args.includes("--force");
 
 const NTFY_TOPIC = process.env.NTFY_TOPIC || "mint-bot-1e55da271c89";
-const APP_URL = process.env.APP_URL || "https://mint-bot.vercel.app";
+const APP_URL = process.env.APP_URL || "https://mint-bot-nine.vercel.app";
 const WARN_DAYS = 10; // Nachschub-Warnung, wenn der Schedule nur noch so viele Tage abdeckt
 
 if (mode !== "morgen" && mode !== "abend") {
