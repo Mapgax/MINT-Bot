@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { query, closePools, hasDb } from "../lib/db.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -39,12 +40,39 @@ const experiments = JSON.parse(readFileSync(join(root, "data/experiments.json"),
 const schedule = JSON.parse(readFileSync(join(root, "data/schedule.json"), "utf8"));
 const byId = new Map(experiments.map((e) => [e.id, e]));
 
-function experimentForDate(dateStr) {
-  const exp = byId.get(schedule[dateStr]);
-  if (exp) return exp;
+/* Status aus der DB, damit die Push-Nachricht dasselbe ankündigt, was die App
+   zeigt. Ohne DB-Zugang wird der Plan unverändert verschickt – die Nachricht
+   ist wichtiger als die Genauigkeit. */
+const status = {};
+if (hasDb()) {
+  try {
+    for (const r of await query(`SELECT id, status FROM mint.themen`, [], { job: true })) {
+      status[r.id] = r.status;
+    }
+  } catch (err) {
+    console.warn(`⚠️  Status nicht abrufbar (${err.message}) – sende nach Plan.`);
+  }
+}
+
+function dateHash(dateStr) {
   let hash = 0;
   for (const ch of dateStr) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return experiments[hash % experiments.length];
+  return hash;
+}
+
+/* Muss Zeichen für Zeichen zu ersatzFuer() in app.js passen – beide leiten aus
+   demselben Datum und derselben Experiment-Reihenfolge denselben Ersatz ab.
+   Weicht eine Seite ab, kündigt der Push etwas anderes an, als die App zeigt. */
+function experimentForDate(dateStr) {
+  let exp = byId.get(schedule[dateStr]);
+  if (!exp) exp = experiments[dateHash(dateStr) % experiments.length];
+  if (status[exp.id] !== "archiviert") return exp;
+
+  const offen = experiments.filter((e) => status[e.id] !== "archiviert");
+  if (!offen.length) return exp;
+  const fundus = offen.filter((e) => status[e.id] === "fundus");
+  const topf = fundus.length ? fundus : offen;
+  return topf[dateHash(dateStr) % topf.length];
 }
 
 const SENSORIK_ICON = { laut: "🔊", nass: "💧", matschig: "🟤", klebrig: "🍯", riecht: "👃", knall: "💥", dunkel: "🌑", sprudelt: "🫧", kalt: "❄️" };
@@ -107,3 +135,4 @@ for (const msg of messages) {
   console.log("→ gesendet ✔");
 }
 if (dryRun) console.log("\n(--dry-run: nichts gesendet)");
+await closePools();

@@ -1,0 +1,36 @@
+name: Wöchentlicher Second-Brain-Digest
+
+# Schreibt sonntagabends eine Wochenzusammenfassung als brain_item in die
+# Inbox des Second Brain: was gemacht wurde, was behalten wurde, was im Fundus
+# gelandet ist. Bewusst ein Item pro Woche statt eines pro Experiment.
+
+on:
+  schedule:
+    - cron: "0 18 * * 0" # 20:00 Berlin (Sommerzeit), sonntags
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Nur anzeigen, nichts schreiben?"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci --omit=dev
+      # Hält die DB-Sicht auf experiments.json/schedule.json aktuell, falls
+      # zwischendurch neue Experimente dazugekommen sind.
+      - name: Experimente spiegeln
+        env:
+          MINT_DB_URL_JOB: ${{ secrets.MINT_DB_URL_JOB }}
+        run: node scripts/sync-experiments.mjs
+      - name: Digest schreiben
+        env:
+          MINT_DB_URL_JOB: ${{ secrets.MINT_DB_URL_JOB }}
+        run: node scripts/brain-digest.mjs ${{ inputs.dry_run && '--dry-run' || '' }}

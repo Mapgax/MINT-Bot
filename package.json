@@ -7,9 +7,13 @@
   "scripts": {
     "validate": "node scripts/validate.mjs",
     "schedule": "node scripts/build-schedule.mjs",
-    "notify": "node scripts/notify.mjs"
+    "notify": "node scripts/notify.mjs",
+    "sync": "node scripts/sync-experiments.mjs",
+    "digest": "node scripts/brain-digest.mjs",
+    "suche": "node scripts/query.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.70.0"
+    "@anthropic-ai/sdk": "^0.70.0",
+    "pg": "^8.22.0"
   }
 }
