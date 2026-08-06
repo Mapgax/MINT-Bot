@@ -26,6 +26,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # notify.mjs liest den Themen-Status über lib/db.js (braucht pg).
+      - run: npm ci --omit=dev
       - name: Modus bestimmen (morgens vs. abends)
         id: mode
         run: |
@@ -45,4 +47,5 @@ jobs:
         env:
           NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
           APP_URL: ${{ vars.APP_URL }}
+          MINT_DB_URL_JOB: ${{ secrets.MINT_DB_URL_JOB }}
         run: node scripts/notify.mjs ${{ steps.mode.outputs.mode }} ${{ steps.mode.outputs.force }}
