@@ -28,11 +28,15 @@ const berlin = (options) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe
 const today = berlin({ dateStyle: "short" }).format(new Date());
 const hour = Number(berlin({ hour: "2-digit", hour12: false }).format(new Date()));
 
-// Der GitHub-Cron läuft je Slot zweimal (wegen Sommer-/Winterzeit); nur der Lauf
-// mit der passenden Berlin-Stunde sendet wirklich.
+/* Zeitfenster statt exakter Stunde. GitHub startet Cron-Jobs zwischen pünktlich
+   und gut anderthalb Stunden zu spät; eine Exakt-Prüfung verwirft die Nachricht
+   dann stillschweigend, und der Lauf meldet trotzdem Erfolg. Mehrere Slots
+   fallen jetzt absichtlich ins selbe Fenster – welcher davon tatsächlich sendet,
+   entscheidet mint.pushes weiter unten. */
+const WINDOW_HOURS = 3;
 const targetHour = mode === "morgen" ? 7 : 19;
-if (!force && hour !== targetHour) {
-  console.log(`Berlin-Stunde ist ${hour}, Ziel ist ${targetHour} – nichts zu tun (DST-Doppel-Cron).`);
+if (!force && (hour < targetHour || hour > targetHour + WINDOW_HOURS)) {
+  console.log(`Berlin-Stunde ist ${hour}, Fenster ist ${targetHour}–${targetHour + WINDOW_HOURS} – nichts zu tun.`);
   process.exit(0);
 }
 
@@ -113,6 +117,52 @@ if (mode === "morgen") {
   }
 }
 
+/* Der Anspruch auf den heutigen Versand. Genau ein Lauf gewinnt den INSERT,
+   alle weiteren Slots im selben Fenster laufen ins DO NOTHING und schweigen.
+
+   Ohne DB fällt das auf das alte Verhalten zurück – exakte Stunde – statt aufs
+   Senden: bei mehreren Slots im Fenster wären sonst mehrere Nachrichten die
+   Folge, und drei Pushes hintereinander sind für dieses Kind schlimmer als
+   einer zu wenig. */
+async function beanspruchePush() {
+  if (force || dryRun) return true;
+  if (!hasDb()) {
+    if (hour === targetHour) return true;
+    console.log(`Keine DB erreichbar und Berlin-Stunde ${hour} ist nicht exakt ${targetHour} – ich schweige lieber.`);
+    return false;
+  }
+  try {
+    const rows = await query(
+      `INSERT INTO mint.pushes (datum, modus) VALUES ($1, $2)
+       ON CONFLICT (datum, modus) DO NOTHING
+       RETURNING datum`,
+      [today, mode], { job: true },
+    );
+    if (!rows.length) {
+      console.log(`${mode} für ${today} wurde bereits gesendet – nichts zu tun.`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn(`⚠️  Anspruch nicht speicherbar (${err.message}) – sende nur bei exakter Stunde.`);
+    return hour === targetHour;
+  }
+}
+
+/* Anspruch wieder freigeben, wenn der Versand scheiterte – sonst wäre der Tag
+   verbrannt und der nächste Slot würde die Nachricht nicht mehr nachholen. */
+async function gibPushFrei() {
+  if (force || dryRun || !hasDb()) return;
+  try {
+    await query(`DELETE FROM mint.pushes WHERE datum = $1 AND modus = $2`, [today, mode], { job: true });
+  } catch { /* dann eben nicht – besser als ein Absturz im Fehlerpfad */ }
+}
+
+if (!(await beanspruchePush())) {
+  await closePools();
+  process.exit(0);
+}
+
 for (const msg of messages) {
   console.log(`\n--- ${msg.title} ---\n${msg.body}`);
   if (dryRun) continue;
@@ -130,6 +180,8 @@ for (const msg of messages) {
   });
   if (!res.ok) {
     console.error(`ntfy-Versand fehlgeschlagen: ${res.status} ${await res.text()}`);
+    await gibPushFrei();
+    await closePools();
     process.exit(1);
   }
   console.log("→ gesendet ✔");

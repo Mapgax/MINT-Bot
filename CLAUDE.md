@@ -10,7 +10,7 @@ Täglicher Science Fact mit Heim-Experiment für ein neurodivergentes Kind (geb.
 - `api/help.js`, `api/details.js` — LLM-Erklär-Helfer (Claude Haiku via `@anthropic-ai/sdk`, braucht `ANTHROPIC_API_KEY` als Vercel-Env-Var). Gemeinsame Logik in `api/_claude.js`.
 - `api/state.js`, `api/events.js`, `api/search.js` — Themen-Status lesen, Ereignisse schreiben, Volltextsuche. Gemeinsame Logik in `lib/db.js`.
 - `scripts/` — `validate.mjs` (Schema-Check), `build-schedule.mjs` (Schedule verlängern), `notify.mjs` (ntfy-Push), `sync-experiments.mjs` (JSON → DB spiegeln), `brain-digest.mjs` (Wochenzusammenfassung ins Second Brain), `query.mjs` (Suche für den `/mint-suche`-Skill).
-- `.github/workflows/notify.yml` — Cron: morgens Tageskarte, abends Eltern-Vorschau + ⚠️-Warnung bei ≤10 Tagen Schedule-Restlaufzeit.
+- `.github/workflows/notify.yml` — Cron: morgens Tageskarte, abends Eltern-Vorschau + ⚠️-Warnung bei ≤10 Tagen Schedule-Restlaufzeit. Mehrere Slots je Fenster, weil GitHub Cron-Jobs bis zu ~100 Minuten verspätet oder (ohne freien Runner) gar nicht startet; `mint.pushes` sorgt dafür, dass trotzdem genau eine Nachricht rausgeht.
 - `.github/workflows/brain-digest.yml` — Cron: sonntags 20 Uhr Wochenzusammenfassung.
 
 ## Themen-Status (Datenmodell)

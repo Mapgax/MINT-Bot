@@ -2,13 +2,21 @@ name: Tägliche ntfy-Benachrichtigung
 
 on:
   schedule:
-    # GitHub-Cron läuft in UTC. Je Slot zwei Einträge, damit Sommer- und
-    # Winterzeit abgedeckt sind – das Script prüft die Berlin-Stunde und
-    # sendet nur beim passenden Lauf (7 Uhr morgens, 19 Uhr abends).
-    - cron: "0 5 * * *"   # 07:00 Berlin (Sommerzeit)
-    - cron: "0 6 * * *"   # 07:00 Berlin (Winterzeit)
-    - cron: "0 17 * * *"  # 19:00 Berlin (Sommerzeit)
-    - cron: "0 18 * * *"  # 19:00 Berlin (Winterzeit)
+    # GitHub startet Cron-Jobs zwischen pünktlich und ~100 Minuten zu spät, und
+    # gelegentlich gar nicht (kein Runner frei – dann läuft kein einziger Step,
+    # ein Retry im Workflow ist also unmöglich). Deshalb mehrere Slots je Fenster
+    # statt einem: der erste, der einen Runner bekommt und im Berliner Zeitfenster
+    # landet, sendet. Alle weiteren prallen an mint.pushes ab und schweigen.
+    # Die Stunden decken Sommer- (UTC+2) und Winterzeit (UTC+1) gemeinsam ab;
+    # was außerhalb des Fensters landet, steigt sofort wieder aus.
+    - cron: "0 5 * * *" # morgens, Fenster 7–10 Berlin
+    - cron: "0 6 * * *"
+    - cron: "0 7 * * *"
+    - cron: "0 8 * * *"
+    - cron: "0 17 * * *" # abends, Fenster 19–22 Berlin
+    - cron: "0 18 * * *"
+    - cron: "0 19 * * *"
+    - cron: "0 20 * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -22,28 +30,43 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      # notify.mjs liest den Themen-Status über lib/db.js (braucht pg).
-      - run: npm ci --omit=dev
-      - name: Modus bestimmen (morgens vs. abends)
+      # Bewusst vor checkout und npm ci: die Mehrzahl der Läufe fällt aus dem
+      # Fenster und soll dann Sekunden statt Minuten kosten. Das Repo ist privat,
+      # Actions-Minuten sind kontingentiert.
+      - name: Modus und Zeitfenster bestimmen
         id: mode
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
             echo "force=--force" >> "$GITHUB_OUTPUT"
-          else
-            HOUR_UTC=$(date -u +%H)
-            if [ "$HOUR_UTC" -lt 12 ]; then
-              echo "mode=morgen" >> "$GITHUB_OUTPUT"
-            else
-              echo "mode=abend" >> "$GITHUB_OUTPUT"
-            fi
-            echo "force=" >> "$GITHUB_OUTPUT"
+            echo "run=yes" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          HOUR=$(TZ=Europe/Berlin date +%-H)
+          if   [ "$HOUR" -ge  7 ] && [ "$HOUR" -le 10 ]; then MODE=morgen
+          elif [ "$HOUR" -ge 19 ] && [ "$HOUR" -le 22 ]; then MODE=abend
+          else
+            echo "Berlin-Stunde $HOUR liegt in keinem Fenster (7–10 / 19–22) – Ende."
+            echo "run=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Berlin-Stunde $HOUR → Modus $MODE"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "force=" >> "$GITHUB_OUTPUT"
+          echo "run=yes" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        if: steps.mode.outputs.run == 'yes'
+      - uses: actions/setup-node@v4
+        if: steps.mode.outputs.run == 'yes'
+        with:
+          node-version: "22"
+          cache: npm
+      # notify.mjs liest den Themen-Status über lib/db.js (braucht pg).
+      - name: Dependencies installieren
+        if: steps.mode.outputs.run == 'yes'
+        run: npm ci --omit=dev
       - name: Nachricht senden
+        if: steps.mode.outputs.run == 'yes'
         env:
           NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
           APP_URL: ${{ vars.APP_URL }}
