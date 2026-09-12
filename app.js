@@ -475,8 +475,12 @@ function syncBox() {
       if (!wert) return;
       store.set("mint.token", wert);
       melden.textContent = "Prüfe …";
+      /* Erst senden, dann holen. ladeServerStand überschreibt mint.favs mit
+         dem Serverstand – auf einem Gerät, dessen Sterne noch nie angekommen
+         sind, wären sie sonst genau in dem Moment weg, in dem das Passwort
+         eingegeben wird. */
+      await flushQueue();
       if (await ladeServerStand()) {
-        await flushQueue();
         melden.textContent = "";
         render();
       } else {
@@ -598,10 +602,22 @@ function renderNochmal(view) {
   }
 
   // --- Nochmal-Liste ---
-  const favs = getFavs().map((id) => state.byId.get(id)).filter(Boolean);
+  /* Der Stern gehört dem Server: gesetzt wird er auf einem Gerät, sichtbar
+     soll er auf allen sein. Solange der Serverstand da ist, zählt er; die
+     lokale Kopie ist nur der Notvorrat fürs Funkloch. */
+  const favIds = state.serverOk
+    ? state.experiments.filter((e) => state.status[e.id] === "nochmal").map((e) => e.id)
+    : getFavs();
+  const favs = favIds.map((id) => state.byId.get(id)).filter(Boolean);
   view.append(el("div", { class: "section-title" }, "⭐ Nochmal machen"));
   if (favs.length) {
     favs.forEach((exp) => view.append(listItem(exp)));
+  } else if (!state.serverOk) {
+    /* Ohne Passwort sieht ein frisches Gerät die Sterne nicht. Das darf nicht
+       wie „ihr habt noch keine“ aussehen – sonst wirkt die Liste gelöscht. */
+    view.append(el("div", { class: "empty-state" },
+      "Die Nochmal-Liste liegt auf dem Server.", el("br"),
+      "Dafür braucht dieses Gerät einmal das Eltern-Passwort (Tab „Morgen“)."));
   } else {
     view.append(el("div", { class: "empty-state" },
       el("span", { class: "big-emoji" }, "⭐"),
