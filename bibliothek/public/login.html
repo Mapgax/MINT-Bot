@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1b22" media="(prefers-color-scheme: dark)">
+  <title>MINT-Bibliothek – Anmelden</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="bib.css">
+</head>
+<body>
+  <header class="app-header">
+    <span class="app-title">📚 MINT-Bibliothek</span>
+  </header>
+
+  <main>
+    <form class="card login-card" id="login-form">
+      <span class="big-emoji" aria-hidden="true">🔬</span>
+      <h1>Experimente für zuhause</h1>
+      <p class="parent-info">
+        Eine private Sammlung kleiner Science-Experimente für Kinder, jeweils mit Schritt-für-Schritt-Ablauf.
+        Den Zugangscode bekommst du von der Person, die dir diesen Link geschickt hat.
+      </p>
+      <label class="section-title" for="code">Zugangscode</label>
+      <input class="suche-input" id="code" name="code" type="password"
+             autocomplete="current-password" required autofocus>
+      <button class="btn btn-primary" type="submit">Anmelden</button>
+      <p class="login-meldung" id="meldung" role="alert"></p>
+    </form>
+  </main>
+
+  <script src="login.js"></script>
+</body>
+</html>

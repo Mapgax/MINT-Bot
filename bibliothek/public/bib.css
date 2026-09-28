@@ -1,0 +1,90 @@
+/* Ergänzungen zur style.css der Haupt-App (die beim Build hierher kopiert wird).
+   Nur, was es in der Haupt-App nicht gibt: Filter, Video-Knopf, Login. */
+
+main { padding-bottom: 40px; } /* keine Tab-Leiste */
+
+/* ---------- Filter ---------- */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.chip {
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.chip.ohne[aria-pressed="true"] {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  border-color: transparent;
+}
+.filter-box { margin: 4px 0 8px; }
+.filter-box > summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--accent);
+  font-weight: 600;
+  padding: 8px 4px;
+  min-height: 44px;
+}
+.filter-box > summary::-webkit-details-marker { display: none; }
+.filter-label { color: var(--ink-soft); font-size: 0.85rem; margin: 10px 0 0; }
+
+.treffer-zeile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin: 10px 2px 2px;
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 4px;
+  min-height: 40px;
+}
+
+/* ---------- Detail ---------- */
+.video-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-decoration: none;
+  margin: 8px 0;
+}
+.reset-row { text-align: right; }
+
+.fuss {
+  text-align: center;
+  margin-top: 32px;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+/* ---------- Login ---------- */
+.login-card { text-align: center; margin-top: 24px; }
+.login-card .big-emoji { font-size: 3.2rem; display: block; }
+.login-card h1 { font-size: 1.4rem; margin: 8px 0; }
+.login-card .section-title { text-align: left; }
+.login-card .btn { margin-top: 12px; }
+.login-meldung { color: var(--warn-ink); min-height: 1.5em; margin: 10px 0 0; }
+
+/* Liste und Zurück sind hier echte Links (Hash-Routing), damit die
+   Browser-Zurück-Taste funktioniert. */
+a.list-item, a.back-btn { text-decoration: none; }
+a.back-btn { display: inline-flex; align-items: center; }

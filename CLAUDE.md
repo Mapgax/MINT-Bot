@@ -12,6 +12,8 @@ Täglicher Science Fact mit Heim-Experiment für ein neurodivergentes Kind (geb.
 - `scripts/` — `validate.mjs` (Schema-Check), `build-schedule.mjs` (Schedule verlängern), `notify.mjs` (ntfy-Push), `sync-experiments.mjs` (JSON → DB spiegeln), `brain-digest.mjs` (Wochenzusammenfassung ins Second Brain), `query.mjs` (Suche für den `/mint-suche`-Skill).
 - `.github/workflows/notify.yml` — Cron: morgens Tageskarte, abends Eltern-Vorschau + ⚠️-Warnung bei ≤10 Tagen Schedule-Restlaufzeit. Mehrere Slots je Fenster, weil GitHub Cron-Jobs bis zu ~100 Minuten verspätet oder (ohne freien Runner) gar nicht startet; `mint.pushes` sorgt dafür, dass trotzdem genau eine Nachricht rausgeht.
 - `.github/workflows/brain-digest.yml` — Cron: sonntags 20 Uhr Wochenzusammenfassung.
+- `data/videos.json` — Experiment-ID → öffentliche ErklärBär-Videos (YouTube). Nur für die Bibliothek.
+- `bibliothek/` — zweites Vercel-Projekt (Root Directory `bibliothek`), siehe unten.
 
 ## Themen-Status (Datenmodell)
 
@@ -52,6 +54,15 @@ Skill **`/mint-experimente`** aufrufen (z.B. `/mint-experimente 30`). Der Skill 
 ## Themen suchen
 
 Skill **`/mint-suche`** aufrufen (z.B. `/mint-suche magnet`). Beantwortet „was haben wir verpasst / schon gemacht / behalten?" aus der DB. Archiviertes ist dort weiterhin auffindbar — es verschwindet nur aus der App.
+
+## Bibliothek für Bekannte (`bibliothek/`)
+
+Geschützte Nur-Lese-Seite (https://mint-bibliothek.vercel.app): alle bisherigen Themen mit Suche, Filtern und Ablauf, aber ohne Heute/Morgen/Geschafft/Stern/Erklär-Helfer. Details: `bibliothek/README.md`.
+
+- **Hat absichtlich keinen DB-Zugriff und keine `MINT_*`-Secrets** – sie kann das Original nicht verändern. Das bitte so lassen.
+- Daten und `style.css` kopiert `bibliothek/build.mjs` beim Deploy aus dem Root. Die Karten-Darstellung in `bibliothek/public/bib.js` ist eine Kopie aus `app.js`: Design-Änderungen dort bei Bedarf mitziehen.
+- Zugang: ein Code pro Person in `BIB_ZUGAENGE`, gepflegt **nur** über `node bibliothek/scripts/zugang.mjs neu|sperren|liste <name>`. Die Codes liegen lokal im Vault (`Manual Notes/Zugaenge/`, per `.brainignore` von der Brain-DB ausgeschlossen) – nie ins Repo, nie per `brain_capture`.
+- Neues öffentliches ErklärBär-Video → Zeile in `data/videos.json`, `npm run validate`, pushen.
 
 ## Konventionen
 

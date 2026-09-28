@@ -1,0 +1,4 @@
+# Beim Build aus dem Repo-Root kopiert (build.mjs) – nie von Hand pflegen.
+public/style.css
+data/
+.vercel/

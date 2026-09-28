@@ -1,0 +1,12 @@
+{
+  "name": "mint-bibliothek",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Geschützte MINT-Themen-Bibliothek für Bekannte – nur lesend, ohne Datenbank",
+  "scripts": {
+    "build": "node build.mjs",
+    "zugang": "node scripts/zugang.mjs"
+  },
+  "engines": { "node": ">=20" }
+}

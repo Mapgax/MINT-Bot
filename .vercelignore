@@ -1,0 +1,3 @@
+# Die Bibliothek ist ein eigenes Vercel-Projekt (Root Directory: bibliothek/).
+# Die Haupt-App soll den Ordner nicht als statische Dateien ausliefern.
+bibliothek/

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Validiert data/experiments.json und data/schedule.json gegen das Schema.
+// Validiert data/experiments.json, data/schedule.json und data/videos.json gegen das Schema.
 // Aufruf: node scripts/validate.mjs
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -68,6 +68,25 @@ if (existsSync(schedulePath)) {
     prevKategorie = exp.kategorie;
   }
   console.log(`Schedule: ${dates.length} Tage (${dates[0]} bis ${dates[dates.length - 1]})`);
+}
+
+// ErklärBär-Videos, die die Bibliothek (bibliothek/) beim Thema verlinkt.
+const videosPath = join(root, "data/videos.json");
+if (existsSync(videosPath)) {
+  const videos = JSON.parse(readFileSync(videosPath, "utf8"));
+  let anzahl = 0;
+  for (const [id, liste] of Object.entries(videos)) {
+    if (!ids.has(id)) err(`Videos: unbekannte Experiment-id "${id}"`);
+    if (!Array.isArray(liste) || !liste.length) err(`Videos "${id}": muss eine nicht-leere Liste sein`);
+    for (const v of Array.isArray(liste) ? liste : []) {
+      anzahl++;
+      if (!["de", "nl"].includes(v.sprache)) err(`Videos "${id}": sprache muss "de" oder "nl" sein`);
+      if (!/^https:\/\/(youtu\.be\/|www\.youtube\.com\/watch\?v=)[\w-]{11}$/.test(v.url ?? "")) {
+        err(`Videos "${id}": url muss https://youtu.be/<id> oder https://www.youtube.com/watch?v=<id> sein`);
+      }
+    }
+  }
+  console.log(`Videos: ${anzahl} zu ${Object.keys(videos).length} Themen`);
 }
 
 const proKategorie = Object.fromEntries(KATEGORIEN.map((k) => [k, experiments.filter((e) => e.kategorie === k).length]));
