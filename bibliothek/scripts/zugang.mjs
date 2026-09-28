@@ -83,13 +83,20 @@ const aktive = (eintraege) => eintraege.filter((e) => e.status === "aktiv");
 const envWert = (eintraege) => aktive(eintraege).map((e) => `${e.name}:${e.code}`).join(",");
 
 // ---------- Vercel ----------
+// Globale CLI, sonst über npx (braucht nur ein einmaliges `npx vercel login`).
 function vercel(args, input) {
-  return execFileSync("vercel", args, {
+  const opts = {
     cwd: bibliothek,
     input,
     stdio: [input === undefined ? "inherit" : "pipe", "pipe", "pipe"],
     encoding: "utf8",
-  });
+  };
+  try {
+    return execFileSync("vercel", args, opts);
+  } catch (err) {
+    if (err.code !== "ENOENT") throw err;
+    return execFileSync("npx", ["--yes", "vercel@latest", ...args], opts);
+  }
 }
 
 function syncVercel(eintraege) {
