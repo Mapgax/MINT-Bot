@@ -93,12 +93,9 @@ function vercel(args, input) {
 }
 
 function syncVercel(eintraege) {
-  const wert = envWert(eintraege);
-  if (!wert) {
-    console.warn("⚠️  Kein aktiver Zugang – BIB_ZUGAENGE bleibt, wie es ist. Niemand Neues kommt rein,");
-    console.warn("   aber zum kompletten Abschalten das Vercel-Projekt pausieren.");
-    return;
-  }
+  /* Ohne aktiven Zugang ein Platzhalter ohne gültigen Eintrag: dann kommt
+     niemand mehr rein (Login meldet „nicht eingerichtet“, Cookies zählen nicht). */
+  const wert = envWert(eintraege) || "niemand";
   try {
     vercel(["env", "rm", "BIB_ZUGAENGE", "production", "--yes"]);
   } catch { /* gab es noch nicht */ }
