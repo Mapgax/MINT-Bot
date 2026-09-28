@@ -2,3 +2,5 @@
 public/style.css
 data/
 .vercel/
+.vercel
+.env*
