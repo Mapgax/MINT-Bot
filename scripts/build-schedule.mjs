@@ -105,14 +105,19 @@ for (let i = 0; i < days; i++) {
   const fundusDran = (wuerfel < FUNDUS_QUOTE || pool.length === 0) && fundusPool.length > 0;
   const topf = fundusDran ? fundusPool : pool;
 
-  let candidates = topf.filter((e) => e.kategorie !== prevKategorie);
-  if (candidates.length === 0) candidates = topf;
-  if (candidates.length === 0) candidates = planbar.filter((e) => e.kategorie !== prevKategorie);
-  if (candidates.length === 0) candidates = planbar;
+  /* Die Regel „nie dieselbe Kategorie hintereinander“ gibt erst nach, wenn es
+     nirgends eine Alternative gibt: zuerst der gewählte Topf, dann der andere
+     Topf (damit Neu und Fundus ihre Rolle behalten), dann alles Planbare.
+     Erst danach wird die Kategorie wiederholt. */
+  const anderer = fundusDran ? pool : fundusPool;
+  const andereKategorie = (liste) => liste.filter((e) => e.kategorie !== prevKategorie);
+  const candidates = [andereKategorie(topf), andereKategorie(anderer), andereKategorie(planbar), topf, planbar]
+    .find((liste) => liste.length > 0);
 
   const pick = candidates[Math.floor(rand() * candidates.length)];
   schedule[fmt(date)] = pick.id;
-  if (fundusDran) ausFundus++;
+  // Nach der tatsächlichen Herkunft zählen: Der Fallback kann den Topf wechseln.
+  if (status[pick.id] === "fundus") ausFundus++;
   // Aus beiden Töpfen entfernen, damit ein Fundus-Experiment nicht kurz darauf
   // regulär nochmal drankommt.
   pool = pool.filter((e) => e.id !== pick.id);
