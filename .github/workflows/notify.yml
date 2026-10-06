@@ -66,9 +66,23 @@ jobs:
         if: steps.mode.outputs.run == 'yes'
         run: npm ci --omit=dev
       - name: Nachricht senden
+        id: notify
         if: steps.mode.outputs.run == 'yes'
         env:
           NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
           APP_URL: ${{ vars.APP_URL }}
           MINT_DB_URL_JOB: ${{ secrets.MINT_DB_URL_JOB }}
         run: node scripts/notify.mjs ${{ steps.mode.outputs.mode }} ${{ steps.mode.outputs.force }}
+      - name: Tatsächlich aufgelöstes Experiment an ErklaerBaer senden
+        if: >-
+          vars.ERKLAERBAER_ENABLED == 'true' &&
+          steps.mode.outputs.run == 'yes' &&
+          steps.mode.outputs.mode == 'morgen' &&
+          steps.notify.outputs.resolved_experiment_id != ''
+        env:
+          GH_TOKEN: ${{ secrets.ERKLAERBAER_DISPATCH_TOKEN }}
+        run: |
+          gh api --method POST repos/Mapgax/ErklaerBaer/dispatches \
+            -f event_type=mint-daily \
+            -f "client_payload[date]=${{ steps.notify.outputs.resolved_date }}" \
+            -f "client_payload[experiment_id]=${{ steps.notify.outputs.resolved_experiment_id }}"

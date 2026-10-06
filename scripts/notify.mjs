@@ -4,7 +4,7 @@
 //   node scripts/notify.mjs abend    → Vorschau für Eltern (nur um 19 Uhr) + Nachschub-Warnung
 // Flags: --dry-run (nur ausgeben, nichts senden), --force (Uhrzeit-Prüfung überspringen)
 // Env: NTFY_TOPIC (Pflicht fürs Senden), APP_URL (Link in der Nachricht)
-import { readFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { query, closePools, hasDb } from "../lib/db.js";
@@ -82,9 +82,11 @@ function experimentForDate(dateStr) {
 const SENSORIK_ICON = { laut: "🔊", nass: "💧", matschig: "🟤", klebrig: "🍯", riecht: "👃", knall: "💥", dunkel: "🌑", sprudelt: "🫧", kalt: "❄️" };
 
 const messages = [];
+let resolvedMorningExperiment = null;
 
 if (mode === "morgen") {
   const exp = experimentForDate(today);
+  resolvedMorningExperiment = exp;
   const icons = exp.sensorik.map((s) => SENSORIK_ICON[s]).join("");
   messages.push({
     title: `${exp.emoji} Heute: ${exp.titel}`,
@@ -156,6 +158,17 @@ async function gibPushFrei() {
   try {
     await query(`DELETE FROM mint.pushes WHERE datum = $1 AND modus = $2`, [today, mode], { job: true });
   } catch { /* dann eben nicht – besser als ein Absturz im Fehlerpfad */ }
+}
+
+/* Jeder morgendliche Slot darf denselben idempotenten Dispatch auslösen. So
+   kann ein späterer Slot einen fehlgeschlagenen GitHub-Aufruf wiederholen,
+   auch wenn der ntfy-Versand bereits über mint.pushes dedupliziert wurde. */
+if (!dryRun && resolvedMorningExperiment && process.env.GITHUB_OUTPUT) {
+  appendFileSync(process.env.GITHUB_OUTPUT, `resolved_date=${today}\n`);
+  appendFileSync(
+    process.env.GITHUB_OUTPUT,
+    `resolved_experiment_id=${resolvedMorningExperiment.id}\n`,
+  );
 }
 
 if (!(await beanspruchePush())) {
